@@ -1,0 +1,55 @@
+version: '3.9'
+
+services:
+  pq_database:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    networks:
+      - service_network
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    restart: always
+    ports:
+      - "8124:8123"
+      - "9001:9000"
+    networks:
+      - service_network
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+
+
+  service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    depends_on:
+      - pq_database
+      - clickhouse
+    networks:
+      - service_network
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - ENV=${ENV}
+      - PORT=${PORT}
+      - DSN=${DSN}
+      - CLICKHOUSE_DRIVER=${CLICKHOUSE_DRIVER}
+      - CLICKHOUSE_SOURCE=${CLICKHOUSE_SOURCE}
+
+networks:
+  service_network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  clickhouse-data:
