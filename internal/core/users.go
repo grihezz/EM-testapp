@@ -11,11 +11,15 @@ type User struct {
 type Users []User
 
 type ServiceUser struct {
-	PassportNum string `json:"passportHash"`
+	PassportNum string `json:"passport_num"`
 	Surname     string `json:"surname"`
 	Name        string `json:"name"`
 	Patronymic  string `json:"patronymic"`
 	Address     string `json:"address"`
+}
+
+type AddUserResponse struct {
+	UserID int `json:"user_id"`
 }
 
 type UserFilter struct {
@@ -24,4 +28,8 @@ type UserFilter struct {
 	Name        string
 	Patronymic  string
 	Address     string
+}
+
+type RequestUsersPassport struct {
+	PassportNum string `json:"passport_num"`
 }

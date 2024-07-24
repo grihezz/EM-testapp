@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"time"
 	"tt/internal/adapters/repository"
 	"tt/internal/handlers/router"
 	"tt/internal/service"
@@ -33,10 +32,7 @@ func main() {
 	defer postgreConn.Close()
 	fmt.Println("DB connection opened")
 
-	ctxWithTimeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-
-	err = migrations.UpMigration(ctxWithTimeout, postgreConn)
+	err = migrations.UpMigration(context.Background(), postgreConn)
 	if err != nil {
 		log.Error("Failed to up migration: ", err)
 	}
@@ -49,12 +45,11 @@ func main() {
 	defer clickhouse.Close()
 	fmt.Println("Clickhouse connection opened")
 
-	err = migrations.UpClickhouse(ctxWithTimeout, clickhouse)
+	err = migrations.UpClickhouse(context.Background(), clickhouse)
 	fmt.Println("Migration up success сlickhouse")
 
 	userRepository := repository.NewUserRepository(postgreConn)
 	userService := service.NewUserService(userRepository)
-	fmt.Println(userService.GetAllUsers(ctxWithTimeout))
 
 	r := router.SetupRouter(userService, log)
 

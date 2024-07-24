@@ -70,13 +70,14 @@ func (ur *UserRepository) AddUser(ctx context.Context, user core.ServiceUser) (i
 	return userID, nil
 }
 
-func (ur *UserRepository) GetUserByID(ctx context.Context, userID int) (core.ServiceUser, error) {
-	const op = "repository.GetUserByID"
-	baseQuery := "SELECT passport_number, surname, name, patronymic, address FROM users WHERE id = $1;"
-	var user core.ServiceUser
+func (ur *UserRepository) GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error) {
+	const op = "repository.GetUserByNumber"
+	baseQuery := "SELECT id,passport_number, surname, name, patronymic, address FROM users WHERE passport_number = $1;"
+	var user core.User
 
-	err := ur.db.QueryRow(ctx, baseQuery, userID).Scan(
-		&user.PassportNum,
+	err := ur.db.QueryRow(ctx, baseQuery, passportNumber).Scan(
+		&user.ID,
+		&user.PassportNumber,
 		&user.Surname,
 		&user.Name,
 		&user.Patronymic,
@@ -84,9 +85,9 @@ func (ur *UserRepository) GetUserByID(ctx context.Context, userID int) (core.Ser
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return core.ServiceUser{}, ErrUsrNotExists
+			return core.User{}, ErrUsrNotExists
 		}
-		return core.ServiceUser{}, fmt.Errorf("%s: %w", op, err)
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return user, nil

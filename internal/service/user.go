@@ -10,6 +10,7 @@ type UserRepo interface {
 	GetAllUsers(ctx context.Context) (core.Users, error)
 	AddUser(ctx context.Context, user core.ServiceUser) (int, error)
 	UpdateUser(ctx context.Context, userID int, newData core.ServiceUser) error
+	GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error)
 }
 
 type UserService struct {
@@ -48,4 +49,14 @@ func (us *UserService) UpdateUser(ctx context.Context, userID int, newData core.
 	}
 
 	return nil
+}
+
+func (us *UserService) GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error) {
+	const op = "service.GetUserByNumber"
+	user, err := us.UserRepository.GetUserByNumber(ctx, passportNumber)
+	if err != nil {
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return user, nil
 }

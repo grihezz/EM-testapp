@@ -1,39 +1,47 @@
 package router
 
 import (
-	"context"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
+	"tt/internal/handlers"
+	middlewares "tt/internal/middleware"
 	"tt/internal/service"
 )
 
 func SetupRouter(userSrv *service.UserService, logger *slog.Logger) *gin.Engine {
-	router := gin.Default()
+	r := gin.Default()
 
-	router.GET("/", func(c *gin.Context) {
+	r.Use(middlewares.AccessLog(logger))
+	r.Use(middlewares.GzipMiddleware())
+	r.Use(middlewares.ErrorHandler())
+	r.Use(middlewares.CORSMiddleware())
+	r.Use(middlewares.RateLimitingMiddleware())
+
+	uh := handlers.NewUserHandler(userSrv, logger, &http.Client{})
+
+	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Welcome to the Gin framework!",
 		})
 	})
 
-	router.GET("/ping", func(c *gin.Context) {
+	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
-	router.GET("/api/users", func(c *gin.Context) {
-		handleGetAllUsers(c, userSrv)
+	r.GET("/api/users", func(c *gin.Context) {
+		uh.GetAllUsersHandler(c)
 	})
 
-	return router
-}
+	r.POST("/api/users", func(c *gin.Context) {
+		uh.AddUserHandler(c)
+	})
 
-func handleGetAllUsers(c *gin.Context, userService *service.UserService) {
-	users, err := userService.GetAllUsers(context.Background())
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, users)
+	r.POST("/api/users/search", func(c *gin.Context) {
+		uh.GetUserByNumberHandler(c)
+	})
+
+	return r
 }

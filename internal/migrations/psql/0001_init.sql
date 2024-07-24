@@ -1,5 +1,5 @@
 -- +goose Up
-CREATE TABLE IF NOT EXISTS users
+CREATE TABLE users
 (
     id SERIAL PRIMARY KEY,
     passport_number VARCHAR(255) NOT NULL,
