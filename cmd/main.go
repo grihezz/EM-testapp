@@ -51,7 +51,10 @@ func main() {
 	userRepository := repository.NewUserRepository(postgreConn)
 	userService := service.NewUserService(userRepository)
 
-	r := router.SetupRouter(userService, log)
+	taskRepository := repository.NewTaskRepository(postgreConn)
+	taskService := service.NewTaskService(taskRepository)
+
+	r := router.SetupRouter(userService, taskService, log)
 
 	log.Info("Starting client on port " + os.Getenv("PORT"))
 

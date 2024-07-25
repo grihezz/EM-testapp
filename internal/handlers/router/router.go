@@ -9,7 +9,7 @@ import (
 	"tt/internal/service"
 )
 
-func SetupRouter(userSrv *service.UserService, logger *slog.Logger) *gin.Engine {
+func SetupRouter(userSrv *service.UserService, taskSrv *service.TaskService, logger *slog.Logger) *gin.Engine {
 	r := gin.Default()
 
 	r.Use(middlewares.AccessLog(logger))
@@ -19,29 +19,25 @@ func SetupRouter(userSrv *service.UserService, logger *slog.Logger) *gin.Engine 
 	r.Use(middlewares.RateLimitingMiddleware())
 
 	uh := handlers.NewUserHandler(userSrv, logger, &http.Client{})
+	th := handlers.NewTaskHandler(taskSrv, logger, &http.Client{})
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "Welcome to the Gin framework!",
-		})
-	})
-
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-	r.GET("/api/users", func(c *gin.Context) {
-		uh.GetAllUsersHandler(c)
-	})
-
-	r.POST("/api/users", func(c *gin.Context) {
-		uh.AddUserHandler(c)
-	})
-
-	r.POST("/api/users/search", func(c *gin.Context) {
-		uh.GetUserByNumberHandler(c)
-	})
+	api := r.Group("/api")
+	{
+		users := api.Group("/users")
+		{
+			users.GET("/", func(c *gin.Context) { uh.GetAllUsersHandler(c) })
+			users.POST("/", func(c *gin.Context) { uh.AddUserHandler(c) })
+			users.POST("/search", func(c *gin.Context) { uh.GetUserByNumberHandler(c) })
+			users.PATCH("/:user_id", func(c *gin.Context) { uh.UpdateUserHandler(c) })
+			users.DELETE("/:user_id", func(c *gin.Context) { uh.DeleteUserHandler(c) })
+		}
+		tasks := api.Group("/tasks")
+		{
+			tasks.GET("/", func(c *gin.Context) { th.GetAllTasksHandler(c) })
+			tasks.POST("/", func(c *gin.Context) { th.AddTaskHandler(c) })
+			tasks.GET("/:user_id", func(c *gin.Context) { th.GetTaskByUserIDHandler(c) })
+		}
+	}
 
 	return r
 }

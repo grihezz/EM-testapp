@@ -23,7 +23,7 @@ func NewUserRepository(db *pgxpool.Pool) *UserRepository {
 
 func (ur *UserRepository) GetAllUsers(ctx context.Context) (core.Users, error) {
 	const op = "repository.GetAllUsers"
-	baseQuery := "SELECT id, passport_number, surname, name, patronymic, address FROM users ORDER BY id;"
+	baseQuery := "SELECT user_id, passport_number, surname, name, patronymic, address FROM users ORDER BY user_id;"
 
 	rows, err := ur.db.Query(ctx, baseQuery)
 	if err != nil {
@@ -59,7 +59,7 @@ func (ur *UserRepository) GetAllUsers(ctx context.Context) (core.Users, error) {
 
 func (ur *UserRepository) AddUser(ctx context.Context, user core.ServiceUser) (int, error) {
 	const op = "repository.AddUser"
-	baseQuery := "INSERT INTO users (passport_number, surname, name, patronymic, address) VALUES ($1, $2, $3, $4, $5) RETURNING id;"
+	baseQuery := "INSERT INTO users (passport_number, surname, name, patronymic, address) VALUES ($1, $2, $3, $4, $5) RETURNING user_id;"
 	var userID int
 
 	err := ur.db.QueryRow(ctx, baseQuery, user.PassportNum, user.Surname, user.Name, user.Patronymic, user.Address).Scan(&userID)
@@ -72,7 +72,7 @@ func (ur *UserRepository) AddUser(ctx context.Context, user core.ServiceUser) (i
 
 func (ur *UserRepository) GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error) {
 	const op = "repository.GetUserByNumber"
-	baseQuery := "SELECT id,passport_number, surname, name, patronymic, address FROM users WHERE passport_number = $1;"
+	baseQuery := "SELECT user_id,passport_number, surname, name, patronymic, address FROM users WHERE passport_number = $1;"
 	var user core.User
 
 	err := ur.db.QueryRow(ctx, baseQuery, passportNumber).Scan(
@@ -93,16 +93,17 @@ func (ur *UserRepository) GetUserByNumber(ctx context.Context, passportNumber st
 	return user, nil
 }
 
-func (ur *UserRepository) UpdateUser(ctx context.Context, userID int, newData core.ServiceUser) error {
+func (ur *UserRepository) UpdateUser(ctx context.Context, userID int, newData core.User) (core.User, error) {
 	const op = "repository.UpdateUser"
+	var user core.User
 	baseQuery := "UPDATE users SET "
 	var args []interface{}
 	var setClauses []string
 	paramIndex := 1
 
-	if newData.PassportNum != "" {
+	if newData.PassportNumber != "" {
 		setClauses = append(setClauses, "passport_number = $"+strconv.Itoa(paramIndex))
-		args = append(args, newData.PassportNum)
+		args = append(args, newData.PassportNumber)
 		paramIndex++
 	}
 
@@ -130,20 +131,42 @@ func (ur *UserRepository) UpdateUser(ctx context.Context, userID int, newData co
 		paramIndex++
 	}
 
-	// Ensure we have at least one field to update
 	if len(setClauses) == 0 {
 		err := errors.New("no fields to update")
-		return fmt.Errorf("%s: %w", op, err)
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	// Combine the SET clauses into the query
 	baseQuery += strings.Join(setClauses, ", ")
 	baseQuery += " WHERE id = $" + strconv.Itoa(paramIndex)
 	args = append(args, userID)
 
 	_, err := ur.db.Exec(ctx, baseQuery, args...)
 	if err != nil {
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	err = ur.db.QueryRow(ctx, "SELECT user_id,passport_number, surname, name, patronymic, address FROM users WHERE user_id = $1", userID).
+		Scan(&user.ID, &user.PassportNumber, &user.Surname, &user.Name, &user.Patronymic, &user.Address)
+
+	if err != nil {
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return user, nil
+}
+
+func (ur *UserRepository) DeleteUser(ctx context.Context, userID int) error {
+	const op = "repository.DeleteUser"
+	baseURL := "DELETE FROM users WHERE user_id = $1"
+
+	result, err := ur.db.Exec(ctx, baseURL, userID)
+	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	rowsAffected := result.RowsAffected()
+	if rowsAffected == 0 {
+		return ErrUsrNotExists
 	}
 
 	return nil

@@ -14,6 +14,11 @@ services:
       - service_network
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   clickhouse:
     image: yandex/clickhouse-server:latest
@@ -25,7 +30,11 @@ services:
       - service_network
     volumes:
       - clickhouse-data:/var/lib/clickhouse
-
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   service:
     build:
@@ -33,8 +42,10 @@ services:
       dockerfile: Dockerfile
     restart: always
     depends_on:
-      - pq_database
-      - clickhouse
+      pq_database:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
     networks:
       - service_network
     ports:

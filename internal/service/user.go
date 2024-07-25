@@ -9,8 +9,9 @@ import (
 type UserRepo interface {
 	GetAllUsers(ctx context.Context) (core.Users, error)
 	AddUser(ctx context.Context, user core.ServiceUser) (int, error)
-	UpdateUser(ctx context.Context, userID int, newData core.ServiceUser) error
+	UpdateUser(ctx context.Context, userID int, newData core.User) (core.User, error)
 	GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error)
+	DeleteUser(ctx context.Context, userID int) error
 }
 
 type UserService struct {
@@ -41,14 +42,14 @@ func (us *UserService) AddUser(ctx context.Context, user core.ServiceUser) (int,
 	return userID, nil
 }
 
-func (us *UserService) UpdateUser(ctx context.Context, userID int, newData core.ServiceUser) error {
+func (us *UserService) UpdateUser(ctx context.Context, userID int, newData core.User) (core.User, error) {
 	const op = "service.UpdateUser"
-	err := us.UserRepository.UpdateUser(ctx, userID, newData)
+	user, err := us.UserRepository.UpdateUser(ctx, userID, newData)
 	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
+		return core.User{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	return nil
+	return user, nil
 }
 
 func (us *UserService) GetUserByNumber(ctx context.Context, passportNumber string) (core.User, error) {
@@ -59,4 +60,14 @@ func (us *UserService) GetUserByNumber(ctx context.Context, passportNumber strin
 	}
 
 	return user, nil
+}
+
+func (us *UserService) DeleteUser(ctx context.Context, userID int) error {
+	const op = "service.DeleteUser"
+	err := us.UserRepository.DeleteUser(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
+	return nil
 }

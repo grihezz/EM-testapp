@@ -1,7 +1,7 @@
 package core
 
 type User struct {
-	ID             int    `json:"id" db:"id"`
+	ID             int    `json:"user_id" db:"user_id"`
 	PassportNumber string `json:"passport_number" db:"passport_number"`
 	Surname        string `json:"surname" db:"surname"`
 	Name           string `json:"name" db:"name"`
@@ -11,7 +11,7 @@ type User struct {
 type Users []User
 
 type ServiceUser struct {
-	PassportNum string `json:"passport_num"`
+	PassportNum string `json:"passport_number"`
 	Surname     string `json:"surname"`
 	Name        string `json:"name"`
 	Patronymic  string `json:"patronymic"`
@@ -20,14 +20,6 @@ type ServiceUser struct {
 
 type AddUserResponse struct {
 	UserID int `json:"user_id"`
-}
-
-type UserFilter struct {
-	PassportNum string
-	Surname     string
-	Name        string
-	Patronymic  string
-	Address     string
 }
 
 type RequestUsersPassport struct {
